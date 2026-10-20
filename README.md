@@ -10,7 +10,7 @@
 `C:\cygwin`，然后检查 Bash、Zsh、OpenSSL 和时区文件。可用 `-Root`
 指定安装目录，`-Mirror` 指定镜像，`-Cache` 指定下载缓存目录。
 
-请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3`。
+请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3,openssh,openssl,xauth`。
 Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严格只包含八个包的环境。
 
 在 GitHub **Actions → Package minimal Cygwin → Run workflow** 手动打包，
@@ -92,3 +92,47 @@ X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版�
 `install-cygwin.ps1` 安装基础环境；XWin 由 `scripts/integrate-xwin.sh`
 从带有完整 `xorg-server` 的独立构建环境中提取。重复部署请使用干净的基础环境，
 避免残留先前完整安装的图形软件包。
+
+## 远程主机 X11 转发
+
+发布包包含 Cygwin OpenSSH 客户端、`xauth` 和 OpenSSL。`start-xwin`
+在 `${XAUTHORITY:-$HOME/.Xauthority}` 中创建或复用认证 cookie，并让 XWin
+使用该文件。不要使用 `-ac` 或 `xhost +` 关闭访问控制。
+
+在 Cygwin Bash 中：
+
+```bash
+# 本机启动 XWin；默认 display 为 :0
+start-xwin :0 &
+
+# 连接可信远程主机，开启可信 X11 转发
+ssh-x11 用户名@远程主机
+# 自定义 SSH 端口示例：ssh-x11 -p 2222 用户名@远程主机
+```
+
+`ssh-x11` 默认使用 `DISPLAY=:0`，保留调用者已有的 `DISPLAY` 和
+`XAUTHORITY`，内部调用 Cygwin 的 `ssh -Y -o XAuthLocation=/usr/bin/xauth`。
+也可以直接执行：
+
+```bash
+export DISPLAY=:0
+ssh -Y -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
+```
+
+在远程会话中：
+
+```bash
+echo "$DISPLAY"  # 通常类似 localhost:10.0，由 SSH 自动设置
+xterm &          # 或运行远端已安装的其他二维 X11 应用
+```
+
+远程主机需要安装 SSH 服务端、`xauth` 和目标 X11 应用，并在 sshd 配置中启用
+`X11Forwarding yes`。远端 `XAuthLocation` 应指向其实际 `xauth` 路径；
+修改 sshd 配置后由管理员检查配置并重新加载服务。不要把远端 `DISPLAY`
+手动设为 `:0`，也不需要开放本机的 6000 端口；X11 流量经 SSH 隧道传输。
+
+`-Y` 仅连接可信主机。需要限制远端权限时可以尝试 `ssh -X`，其兼容性受
+X11 SECURITY 扩展及远端应用影响。当前精简版不支持需要 GLX/OpenGL 的应用。
+
+CI 验证 SSH 的 X11 转发选项，以及使用认证 cookie 的本地 X11 连接、窗口和绘图。
+实际远程登录与转发还取决于目标主机的 SSH 配置、账号授权和应用；CI 不持有你的远端凭据。
