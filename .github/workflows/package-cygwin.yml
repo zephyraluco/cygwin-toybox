@@ -1,0 +1,43 @@
+name: Package minimal Cygwin
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/install-cygwin.ps1
+      - .github/workflows/package-cygwin.yml
+  pull_request:
+    paths:
+      - scripts/install-cygwin.ps1
+      - .github/workflows/package-cygwin.yml
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install and validate Cygwin
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
+      - name: Archive installed environment
+        run: |
+          # tar preserves Cygwin links and metadata better than a ZIP archive.
+          tar.exe -czf "$env:RUNNER_TEMP/cygwin-x86_64.tar.gz" -C C:\ cygwin
+          if ($LASTEXITCODE -ne 0) { throw 'Cygwin archive creation failed' }
+          tar.exe -tzf "$env:RUNNER_TEMP/cygwin-x86_64.tar.gz" > "$env:RUNNER_TEMP/cygwin-archive-files.txt"
+          if ($LASTEXITCODE -ne 0) { throw 'Cygwin archive validation failed' }
+      - name: Upload Cygwin archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: cygwin-x86_64
+          path: ${{ runner.temp }}/cygwin-x86_64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
