@@ -8,7 +8,7 @@ source_dir=$(cygpath -u "$1")
 runtime=$(cygpath -u "$2")
 cd "$source_dir"
 patch --batch --forward -p1 < "$project/scripts/patches/toybox-cygwin.patch"
-export CC=gcc HOSTCC=gcc CPUS=2
+export CC=gcc HOSTCC=gcc CPUS=2 OUTNAME=toybox.exe
 export KCONFIG_ALLCONFIG="$project/scripts/toybox-cygwin.config"
 make allnoconfig
 if ! make toybox; then

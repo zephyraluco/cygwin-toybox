@@ -166,7 +166,15 @@
    if (!CFG_TOYBOX_FORK && (0x80 & **argv)) **argv &= 0x7f;
 --- a/lib/xwrap.c
 +++ b/lib/xwrap.c
-@@ -202,8 +202,10 @@
+@@ -188,5 +188,7 @@
+ void xvdaemon(void)
+ {
++#ifdef TIOCNOTTY
+   int fd;
++#endif
+
+   // vfork and exec /proc/self/exe
+@@ -202,8 +204,10 @@
    xopen_stdio("/dev/null", O_RDWR);
    dup2(0, 1);
 +#ifdef TIOCNOTTY
