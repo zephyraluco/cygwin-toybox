@@ -69,20 +69,8 @@ $test = & C:\cygwin\bin\cygpath.exe -u "$PWD/scripts/test-toybox.sh"
 Cygwin DLL，并保留 XKB 键盘和 X11 locale 数据。不复制完整图形依赖树、
 Mesa DRI 驱动、LLVM 或外部字体包。基础包、Zsh、OpenSSL 和 Toybox 保留。
 
-在 Windows 的 Cygwin 终端中运行：
-
-```bash
-start-xwin :0 &
-export DISPLAY=:0
-```
-
-启动器启用多窗口和剪贴板，禁用 GLX/3D 和 TCP 监听，并使用服务器内置字体。
 只提供二维 X11 功能；需要 OpenGL/GLX 的程序不在这个精简配置的支持范围内。
-`XWin.exe` 仍位于 `/usr/bin/`，直接启动时请使用同样的参数：
-
-```bash
-XWin :0 -multiwindow -clipboard -extension GLX -fp built-ins -nolisten tcp
-```
+`XWin.exe` 位于 `/usr/bin/`，直接启动与 SSH 转发步骤见下节。
 
 CI 通过真实 X11 连接验证窗口创建与绘图，并回归 Toybox 功能后打包。
 X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版本记录位于
@@ -95,29 +83,35 @@ X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版�
 
 ## 远程主机 X11 转发
 
-发布包包含 Cygwin OpenSSH 客户端、`xauth` 和 OpenSSL。`start-xwin`
-在 `${XAUTHORITY:-$HOME/.Xauthority}` 中创建或复用认证 cookie，并让 XWin
-使用该文件。不要使用 `-ac` 或 `xhost +` 关闭访问控制。
+发布包包含 Cygwin OpenSSH 客户端、`xauth` 和 OpenSSL，不提供额外启动包装脚本。
 
-在 Cygwin Bash 中：
-
-```bash
-# 本机启动 XWin；默认 display 为 :0
-start-xwin :0 &
-
-# 连接可信远程主机，开启可信 X11 转发
-ssh-x11 用户名@远程主机
-# 自定义 SSH 端口示例：ssh-x11 -p 2222 用户名@远程主机
-```
-
-`ssh-x11` 默认使用 `DISPLAY=:0`，保留调用者已有的 `DISPLAY` 和
-`XAUTHORITY`，内部调用 Cygwin 的 `ssh -Y -o XAuthLocation=/usr/bin/xauth`。
-也可以直接执行：
+在 Cygwin Bash 中先准备认证数据并启动 XWin：
 
 ```bash
 export DISPLAY=:0
-ssh -Y -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+umask 077
+mkdir -p "$(dirname "$XAUTHORITY")"
+touch "$XAUTHORITY"
+chmod 600 "$XAUTHORITY"
+# 如果已有该 display 的 cookie，复用它，避免影响正在运行的 XWin。
+if [ -z "$(xauth list "$DISPLAY")" ]; then
+  xauth add "$DISPLAY" MIT-MAGIC-COOKIE-1 "$(openssl rand -hex 16)"
+fi
+XWin "$DISPLAY" -multiwindow -clipboard -extension GLX -fp built-ins \
+  -nolisten tcp -auth "$XAUTHORITY" &
 ```
+
+然后连接可信远程主机：
+
+```bash
+ssh -Y -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
+# 自定义端口：ssh -Y -p 2222 -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
+```
+
+在其他终端中连接时，也要设置相同的 `DISPLAY` 和 `XAUTHORITY`。
+XWin 使用内置字体、多窗口和剪贴板，关闭 GLX/3D 和 TCP 监听。
+不要使用 `-ac` 或 `xhost +` 关闭认证。
 
 在远程会话中：
 

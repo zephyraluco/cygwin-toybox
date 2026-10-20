@@ -52,9 +52,6 @@ test -r "$runtime/usr/share/X11/xkb/rules/base"
 if [[ -f /etc/X11/system.XWinrc ]]; then
   copy_file /etc/X11/system.XWinrc /etc/X11/system.XWinrc
 fi
-cp "$project/scripts/start-xwin.sh" "$runtime/usr/local/bin/start-xwin"
-cp "$project/scripts/ssh-x11.sh" "$runtime/usr/local/bin/ssh-x11"
-chmod +x "$runtime/usr/local/bin/start-xwin" "$runtime/usr/local/bin/ssh-x11"
 cygcheck -c xorg-server > "$share/upstream-version.txt"
 sort -u "$manifest" -o "$manifest"
 
