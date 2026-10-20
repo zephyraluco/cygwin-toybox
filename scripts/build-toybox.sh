@@ -11,7 +11,12 @@ patch --batch --forward -p1 < "$project/scripts/patches/toybox-cygwin.patch"
 export CC=gcc HOSTCC=gcc CPUS=2
 export KCONFIG_ALLCONFIG="$project/scripts/toybox-cygwin.config"
 make allnoconfig
-make toybox
+if ! make toybox; then
+  # The parallel build stops at the first failed batch. Compile all selected
+  # files once to report the complete set of remaining porting errors.
+  bash generated/build.sh
+  exit 1
+fi
 
 install -d "$runtime/usr/local/bin" "$runtime/opt/toybox/bin" "$runtime/opt/toybox/share"
 install -m 755 toybox.exe "$runtime/usr/local/bin/toybox.exe"

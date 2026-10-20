@@ -164,3 +164,16 @@
 +#endif
    // Nommu has special reentry path, !stacktop = "vfork/exec self happened"
    if (!CFG_TOYBOX_FORK && (0x80 & **argv)) **argv &= 0x7f;
+--- a/lib/xwrap.c
++++ b/lib/xwrap.c
+@@ -202,8 +202,10 @@
+   xopen_stdio("/dev/null", O_RDWR);
+   dup2(0, 1);
++#ifdef TIOCNOTTY
+   if (-1 != (fd = open("/dev/tty", O_RDONLY))) {
+     ioctl(fd, TIOCNOTTY);
+     close(fd);
+   }
++#endif
+   dup2(0, 2);
+ }
