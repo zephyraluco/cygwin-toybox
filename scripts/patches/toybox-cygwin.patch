@@ -1,7 +1,15 @@
 --- a/lib/portability.h
 +++ b/lib/portability.h
-@@ -172,6 +172,10 @@
+@@ -8,4 +8,8 @@
+ // This must come before we #include any system header file to take effect!
+ #define _FILE_OFFSET_BITS 64
++
++#ifdef __CYGWIN__
++#define _GNU_SOURCE
++#endif
 
+ #if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
+@@ -173,4 +177,8 @@
  // Linux headers not listed by POSIX or LSB
  #include <sys/mount.h>
 +#ifdef __CYGWIN__
@@ -10,18 +18,14 @@
 +#endif
  #ifdef __linux__
  #include <sys/statfs.h>
- #include <sys/swap.h>
-@@ -196,7 +200,7 @@
- int personality(int);
+@@ -197,5 +205,5 @@
  #endif
 
 -#if defined(__APPLE__) || defined(__linux__)
 +#if defined(__APPLE__) || defined(__linux__) || defined(__CYGWIN__)
  // Linux and macOS has both have getxattr and friends in <sys/xattr.h>, but
  // they aren't compatible.
- #include <sys/xattr.h>
-@@ -225,7 +229,13 @@
- static inline long statfs_frsize(struct statfs *sf) { return sf->f_bsize; }
+@@ -226,5 +234,11 @@
  #else
  static inline long statfs_bsize(struct statfs *sf) { return sf->f_bsize; }
 -static inline long statfs_frsize(struct statfs *sf) { return sf->f_frsize; }
@@ -34,20 +38,16 @@
 +}
  #endif
 
-
 --- a/lib/portability.c
 +++ b/lib/portability.c
-@@ -93,7 +93,7 @@
-   return mtlist;
+@@ -94,5 +94,5 @@
  }
 
 -#elif defined(__linux__)
 +#elif defined(__linux__) || defined(__CYGWIN__)
 
  #include <mntent.h>
-
-@@ -261,6 +261,23 @@
-     }
+@@ -262,4 +262,21 @@
    }
  }
 +#elif defined(__CYGWIN__)
@@ -69,70 +69,56 @@
 +}
  #else
  #error
- #endif
-@@ -315,7 +332,7 @@
-   return fsetxattr(fd, name, value, size, 0, flags);
+@@ -316,5 +333,5 @@
  }
 
 -#elif defined(__linux__)
 +#elif defined(__linux__) || defined(__CYGWIN__)
 
  ssize_t xattr_get(const char *path, const char *name, void *value, size_t size)
- {
-@@ -521,7 +538,7 @@
-   return ((dev&0xfff00000)>>12)|(dev&0xff);
+@@ -522,5 +539,5 @@
  #elif defined(__APPLE__)
    return dev&0xffffff;
 -#elif defined(__IsBSD__)
 +#elif defined(__IsBSD__) || defined(__CYGWIN__)
    return minor(dev);
  #else
- #error
-@@ -535,7 +552,7 @@
-   return (dev&0xfff00)>>8;
+@@ -536,5 +553,5 @@
  #elif defined(__APPLE__)
    return (dev>>24)&0xff;
 -#elif defined(__IsBSD__)
 +#elif defined(__IsBSD__) || defined(__CYGWIN__)
    return major(dev);
  #else
- #error
-@@ -549,7 +566,7 @@
-   return (minor&0xff)|((major&0xfff)<<8)|((minor&0xfff00)<<12);
+@@ -550,5 +567,5 @@
  #elif defined(__APPLE__)
    return (minor&0xffffff)|((major&0xff)<<24);
 -#elif defined(__IsBSD__)
 +#elif defined(__IsBSD__) || defined(__CYGWIN__)
    return makedev(major, minor);
  #else
- #error
-@@ -563,7 +580,7 @@
-   // macOS has an `f_type` field, but assigns values dynamically as filesystems
+@@ -564,5 +581,5 @@
    // are registered. They do give you the name directly though, so use that.
    return statfs->f_fstypename;
 -#elif defined(__linux__)
 +#elif defined(__linux__) || defined(__CYGWIN__)
    char *s = NULL;
    struct {unsigned num; char *name;} nn[] = {
-     {0xADF5, "adfs"}, {0xADFF, "affs"}, {0x5346414F, "afs"}, {0x187, "autofs"},
-@@ -641,6 +658,8 @@
- }
+@@ -642,4 +659,6 @@
  #endif
 
 +
 +#ifdef __linux__
  static int check_copy_file_range(void)
  {
- #if defined(__ANDROID__)
-@@ -655,12 +674,16 @@
- #endif
+@@ -656,4 +675,6 @@
  }
 
 +#endif
 +
  // Return bytes copied from in to out. If bytes <0 copy all of in to out.
  // If consumed isn't null, amount read saved there (return is written or error)
- long long sendfile_len(int in, int out, long long bytes, long long *consumed)
+@@ -661,5 +682,7 @@
  {
    long long total = 0, len, ww;
 +#ifdef __linux__
@@ -140,17 +126,13 @@
 +#endif
 
    if (consumed) *consumed = 0;
-   if (in>=0) while (bytes != total) {
-@@ -668,6 +691,7 @@
-     len = bytes-total;
+@@ -669,4 +692,5 @@
 
      errno = 0;
 +#ifdef __linux__
      if (try_cfr) {
        if (bytes<0 || len>(1<<30)) len = (1<<30);
-       len = syscall(try_cfr, in, 0, out, 0, len, 0);
-@@ -676,7 +700,9 @@
-
+@@ -677,5 +701,7 @@
          continue;
        }
 -    } else {
@@ -159,11 +141,9 @@
 +    {
        if (bytes<0 || len>sizeof(libbuf)) len = sizeof(libbuf);
        ww = len = read(in, libbuf, len);
-     }
 --- a/toys.h
 +++ b/toys.h
-@@ -65,8 +65,10 @@
-
+@@ -66,6 +66,8 @@
  // Non-posix headers
  #include <sys/ioctl.h>
 +#ifndef __CYGWIN__
@@ -172,4 +152,15 @@
 +#endif
 
  #include "lib/lib.h"
- #include "lib/lsm.h"
+--- a/main.c
++++ b/main.c
+@@ -344,4 +344,9 @@
+ int main(int argc, char *argv[])
+ {
++#ifdef __CYGWIN__
++  // Cygwin keeps an explicit .exe suffix in argv[0] when invoked by that name.
++  char *exe = strrchr(argv[0], '.');
++  if (exe && !strcasecmp(exe, ".exe")) *exe = 0;
++#endif
+   // Nommu has special reentry path, !stacktop = "vfork/exec self happened"
+   if (!CFG_TOYBOX_FORK && (0x80 & **argv)) **argv &= 0x7f;

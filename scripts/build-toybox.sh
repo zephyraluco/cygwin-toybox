@@ -29,9 +29,10 @@ while IFS= read -r dll; do
   dll=${dll#"${dll%%[![:space:]]*}"}
   [[ "$dll" == *.dll ]] || continue
   dll=$(cygpath -u "$dll")
-  case "$dll" in
-    /usr/bin/*|/bin/*) cp -n "$dll" "$runtime/bin/" ;;
-  esac
+  name=$(basename "$dll")
+  if [[ -f "/usr/bin/$name" ]]; then
+    cp -n "/usr/bin/$name" "$runtime/bin/"
+  fi
 done < generated/runtime-dependencies.txt
 
 # Keep existing GNU utilities intact. Opt in with PATH=/opt/toybox/bin:$PATH.
