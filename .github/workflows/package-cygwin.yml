@@ -50,6 +50,7 @@ jobs:
           & C:\cygwin-build\bin\bash.exe --login $script C:\cygwin "$env:RUNNER_TEMP/xwin-smoke.exe"
           if ($LASTEXITCODE -ne 0) { throw 'XWin integration failed' }
       - name: Validate XWin with an X11 client
+        timeout-minutes: 3
         run: |
           $script = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-xwin.sh"
           & C:\cygwin\bin\bash.exe --login $script "$env:RUNNER_TEMP/xwin-smoke.exe"
