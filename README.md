@@ -7,10 +7,10 @@
 ```
 
 脚本通过 HTTPS 从 Cygwin 官网下载安装器，保留安装器默认的软件包签名验证，安装到
-`C:\cygwin`，然后检查 Bash、Zsh、OpenSSL 和时区文件。可用 `-Root`
+`C:\cygwin`，然后检查 Bash、Zsh、OpenSSL、时区文件和 XWin。可用 `-Root`
 指定安装目录，`-Mirror` 指定镜像，`-Cache` 指定下载缓存目录。
 
-请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3`。
+请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3,xorg-server`。
 Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严格只包含八个包的环境。
 
 在 GitHub **Actions → Package minimal Cygwin → Run workflow** 手动打包，
@@ -62,3 +62,16 @@ $test = & C:\cygwin\bin\cygpath.exe -u "$PWD/scripts/test-toybox.sh"
 ```
 
 构建脚本在干净的上游检出目录应用补丁；重复构建请使用新的干净检出目录。
+
+## Cygwin/X
+
+包含 `xorg-server` 及其依赖，X Server 程序位于 `/usr/bin/XWin.exe`。
+在 Windows 的 Cygwin 终端中可以运行：
+
+```bash
+XWin :0 -multiwindow -clipboard &
+export DISPLAY=:0
+```
+
+CI 验证软件包完整性、`XWin.exe` 存在及其版本命令；不启动交互式桌面。
+X 客户端（例如 `xterm`）需要另行安装。
