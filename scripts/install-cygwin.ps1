@@ -16,9 +16,10 @@ Invoke-WebRequest -Uri 'https://cygwin.com/setup-x86_64.exe' -OutFile $installer
 
 $pkgs = 'bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3'
 # -B avoids elevation; the installation belongs to the current user.
-& $installer -q -B -n -R $Root -s $Mirror -P $pkgs -l $Cache
-if ($LASTEXITCODE -ne 0) {
-    throw "Cygwin setup failed with exit code $LASTEXITCODE"
+$setupArguments = @('-q', '-B', '-n', '-R', ('"{0}"' -f $Root), '-s', ('"{0}"' -f $Mirror), '-P', $pkgs, '-l', ('"{0}"' -f $Cache))
+$setup = Start-Process -FilePath $installer -ArgumentList $setupArguments -Wait -PassThru
+if ($setup.ExitCode -ne 0) {
+    throw "Cygwin setup failed with exit code $($setup.ExitCode)"
 }
 
 # Exercise the installed runtime and requested shells before packaging.
