@@ -117,13 +117,14 @@
      {0xADF5, "adfs"}, {0xADFF, "affs"}, {0x5346414F, "afs"}, {0x187, "autofs"},
 --- a/toys.h
 +++ b/toys.h
-@@ -65,7 +65,9 @@
+@@ -65,8 +65,10 @@
 
  // Non-posix headers
  #include <sys/ioctl.h>
 +#ifndef __CYGWIN__
  #include <sys/syscall.h>
-+#endif
  #include <sys/ttydefaults.h>
++#endif
 
  #include "lib/lib.h"
+ #include "lib/lsm.h"
