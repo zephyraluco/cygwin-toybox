@@ -42,12 +42,13 @@ for exe in /usr/bin/XWin.exe /usr/bin/xkbcomp.exe; do
 done
 
 # XKB compilation requires rules, keycodes, symbols, geometry and locale data.
-cp -a /usr/share/X11/xkb "$runtime/usr/share/X11/"
-find /usr/share/X11/xkb -type f >> "$manifest"
+cp -aL /usr/share/X11/xkb "$runtime/usr/share/X11/"
+find -L /usr/share/X11/xkb -type f >> "$manifest"
 if [[ -d /usr/share/X11/locale ]]; then
-  cp -a /usr/share/X11/locale "$runtime/usr/share/X11/"
-  find /usr/share/X11/locale -type f >> "$manifest"
+  cp -aL /usr/share/X11/locale "$runtime/usr/share/X11/"
+  find -L /usr/share/X11/locale -type f >> "$manifest"
 fi
+test -r "$runtime/usr/share/X11/xkb/rules/base"
 if [[ -f /etc/X11/system.XWinrc ]]; then
   copy_file /etc/X11/system.XWinrc /etc/X11/system.XWinrc
 fi
