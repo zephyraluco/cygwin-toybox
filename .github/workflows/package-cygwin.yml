@@ -5,11 +5,11 @@ on:
   push:
     branches: [main]
     paths:
-      - scripts/install-cygwin.ps1
+      - scripts/**
       - .github/workflows/package-cygwin.yml
   pull_request:
     paths:
-      - scripts/install-cygwin.ps1
+      - scripts/**
       - .github/workflows/package-cygwin.yml
 
 permissions:
@@ -24,8 +24,27 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
+      - name: Check out pinned Toybox source
+        uses: actions/checkout@v4
+        with:
+          repository: landley/toybox
+          ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
+          path: upstream/toybox
+      - name: Install isolated Cygwin compiler
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages gcc-core,make,patch
       - name: Install and validate Cygwin
         run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
+      - name: Compile and integrate Toybox
+        run: |
+          $script = 'C:/cygwin-build/bin/cygpath.exe'
+          $buildScript = & $script -u "$env:GITHUB_WORKSPACE/scripts/build-toybox.sh"
+          & C:\cygwin-build\bin\bash.exe --login $buildScript "$env:GITHUB_WORKSPACE/upstream/toybox" C:\cygwin
+          if ($LASTEXITCODE -ne 0) { throw 'Toybox build failed' }
+      - name: Validate Toybox in runtime without compiler
+        run: |
+          $testScript = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-toybox.sh"
+          & C:\cygwin\bin\bash.exe --login $testScript
+          if ($LASTEXITCODE -ne 0) { throw 'Toybox runtime tests failed' }
       - name: Archive installed environment
         run: |
           # tar preserves Cygwin links and metadata better than a ZIP archive.

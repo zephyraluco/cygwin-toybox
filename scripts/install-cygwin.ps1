@@ -2,7 +2,8 @@
 param(
     [string]$Root = 'C:\cygwin',
     [string]$Mirror = 'https://mirrors.kernel.org/sourceware/cygwin/',
-    [string]$Cache = (Join-Path $env:TEMP 'cygwin-packages')
+    [string]$Cache = (Join-Path $env:TEMP 'cygwin-packages'),
+    [string]$AdditionalPackages = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +16,7 @@ New-Item -ItemType Directory -Path $Cache -Force | Out-Null
 Invoke-WebRequest -Uri 'https://cygwin.com/setup-x86_64.exe' -OutFile $installer
 
 $pkgs = 'bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3'
+if ($AdditionalPackages) { $pkgs += ',' + $AdditionalPackages }
 # -B avoids elevation; the installation belongs to the current user.
 $setupArguments = @('-q', '-B', '-n', '-R', ('"{0}"' -f $Root), '-s', ('"{0}"' -f $Mirror), '-P', $pkgs, '-l', ('"{0}"' -f $Cache))
 $setup = Start-Process -FilePath $installer -ArgumentList $setupArguments -Wait -PassThru
