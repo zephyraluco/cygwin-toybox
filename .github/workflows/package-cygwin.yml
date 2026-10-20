@@ -31,7 +31,7 @@ jobs:
           ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
           path: upstream/toybox
       - name: Install isolated Cygwin compiler
-        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages gcc-core,make,patch
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch'
       - name: Install and validate Cygwin
         run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
       - name: Compile and integrate Toybox
