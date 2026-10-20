@@ -17,6 +17,8 @@ Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严�
 或推送相关修改到 `main` 自动打包。运行成功后，在该次运行页面的
 **Artifacts → cygwin-x86_64** 下载压缩包，产物保留 **7 天**。
 下载产物内包含 `cygwin-x86_64.tar.gz`，其顶层目录为 `cygwin/`。
+打包前删除 `/usr/share/doc` 和 `/usr/share/info`，许可证、版权声明及可能
+包含分发条款的 README 文件按原相对路径保存在 `/opt/licenses/usr/share/doc/`。
 请在 Windows 上解压到目标父目录；Cygwin 不是 Linux 可执行环境。
 
 安装器和软件包使用镜像当前版本，未固定版本；不同日期打包结果可能不同。
