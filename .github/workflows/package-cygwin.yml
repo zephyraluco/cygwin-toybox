@@ -35,7 +35,7 @@ jobs:
           ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
           path: upstream/toybox
       - name: Install isolated Cygwin compiler
-        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch'
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel'
       - name: Install and validate Cygwin
         run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
       - name: Compile and integrate Toybox
@@ -44,6 +44,16 @@ jobs:
           $buildScript = & $script -u "$env:GITHUB_WORKSPACE/scripts/build-toybox.sh"
           & C:\cygwin-build\bin\bash.exe --login $buildScript "$env:GITHUB_WORKSPACE/upstream/toybox" C:\cygwin
           if ($LASTEXITCODE -ne 0) { throw 'Toybox build failed' }
+      - name: Integrate minimal XWin runtime
+        run: |
+          $script = & C:\cygwin-build\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/integrate-xwin.sh"
+          & C:\cygwin-build\bin\bash.exe --login $script C:\cygwin "$env:RUNNER_TEMP/xwin-smoke.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'XWin integration failed' }
+      - name: Validate XWin with an X11 client
+        run: |
+          $script = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-xwin.sh"
+          & C:\cygwin\bin\bash.exe --login $script "$env:RUNNER_TEMP/xwin-smoke.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'XWin functional tests failed' }
       - name: Validate Toybox in runtime without compiler
         run: |
           $testScript = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-toybox.sh"

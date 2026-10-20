@@ -7,10 +7,10 @@
 ```
 
 脚本通过 HTTPS 从 Cygwin 官网下载安装器，保留安装器默认的软件包签名验证，安装到
-`C:\cygwin`，然后检查 Bash、Zsh、OpenSSL、时区文件和 XWin。可用 `-Root`
+`C:\cygwin`，然后检查 Bash、Zsh、OpenSSL 和时区文件。可用 `-Root`
 指定安装目录，`-Mirror` 指定镜像，`-Cache` 指定下载缓存目录。
 
-请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3,xorg-server`。
+请求的软件包为 `bash,cygwin,ncurses,terminfo,base-files,tzdata,zsh,libssl3`。
 Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严格只包含八个包的环境。
 
 在 GitHub **Actions → Package minimal Cygwin → Run workflow** 手动打包，
@@ -52,7 +52,7 @@ export PATH=/opt/toybox/bin:$PATH
 手动构建时，先检出上述 Toybox 提交，再运行：
 
 ```powershell
-./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch'
+./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel'
 ./scripts/install-cygwin.ps1 -Root C:\cygwin
 # 从项目根目录执行；将 D:\src\toybox 替换为上游源码目录
 $build = & C:\cygwin-build\bin\cygpath.exe -u "$PWD/scripts/build-toybox.sh"
@@ -63,15 +63,32 @@ $test = & C:\cygwin\bin\cygpath.exe -u "$PWD/scripts/test-toybox.sh"
 
 构建脚本在干净的上游检出目录应用补丁；重复构建请使用新的干净检出目录。
 
-## Cygwin/X
+## Minimal Cygwin/X
 
-包含 `xorg-server` 及其依赖，X Server 程序位于 `/usr/bin/XWin.exe`。
-在 Windows 的 Cygwin 终端中可以运行：
+发布包从独立构建环境中提取 `XWin.exe`、`xkbcomp.exe` 及递归导入的
+Cygwin DLL，并保留 XKB 键盘和 X11 locale 数据。不复制完整图形依赖树、
+Mesa DRI 驱动、LLVM 或外部字体包。基础包、Zsh、OpenSSL 和 Toybox 保留。
+
+在 Windows 的 Cygwin 终端中运行：
 
 ```bash
-XWin :0 -multiwindow -clipboard &
+start-xwin :0 &
 export DISPLAY=:0
 ```
 
-CI 验证软件包完整性、`XWin.exe` 存在及其版本命令；不启动交互式桌面。
-X 客户端（例如 `xterm`）需要另行安装。
+启动器启用多窗口和剪贴板，禁用 GLX/3D 和 TCP 监听，并使用服务器内置字体。
+只提供二维 X11 功能；需要 OpenGL/GLX 的程序不在这个精简配置的支持范围内。
+`XWin.exe` 仍位于 `/usr/bin/`，直接启动时请使用同样的参数：
+
+```bash
+XWin :0 -multiwindow -clipboard -extension GLX -fp built-ins -nolisten tcp
+```
+
+CI 通过真实 X11 连接验证窗口创建与绘图，并回归 Toybox 功能后打包。
+X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版本记录位于
+`/opt/xwin/share/`；精简 XWin 为提取的运行文件，不声明为完整的
+`xorg-server` 包管理器安装。
+
+`install-cygwin.ps1` 安装基础环境；XWin 由 `scripts/integrate-xwin.sh`
+从带有完整 `xorg-server` 的独立构建环境中提取。重复部署请使用干净的基础环境，
+避免残留先前完整安装的图形软件包。
