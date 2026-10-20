@@ -24,6 +24,14 @@ if ($setup.ExitCode -ne 0) {
     throw "Cygwin setup failed with exit code $($setup.ExitCode)"
 }
 
+# Windows Git checkouts inherit Windows ACLs. Do not translate these ACLs
+# into POSIX permissions on drive mounts used for builds and script execution.
+$fstab = Join-Path $Root 'etc\fstab'
+$mountRule = 'none /cygdrive cygdrive binary,noacl,posix=0,user 0 0'
+if (-not (Select-String -Path $fstab -Pattern '^none /cygdrive cygdrive binary,noacl,posix=0,user 0 0$' -Quiet)) {
+    Add-Content -Path $fstab -Value "`n$mountRule" -Encoding utf8
+}
+
 # Exercise the installed runtime and requested shells before packaging.
 & (Join-Path $Root 'bin\bash.exe') --login -c 'set -eu; report=$(cygcheck -c bash cygwin ncurses terminfo base-files tzdata zsh libssl3); printf "%s\n" "$report"; for pkg in bash cygwin ncurses terminfo base-files tzdata zsh libssl3; do printf "%s\n" "$report" | grep -Eq "^$pkg[[:space:]]+[^[:space:]]+[[:space:]]+OK$"; done; zsh -fc ''print -r -- cygwin-zsh-ok''; test -f /usr/bin/cygssl-3.dll; test -f /usr/share/zoneinfo/UTC'
 if ($LASTEXITCODE -ne 0) {
