@@ -115,6 +115,51 @@
    char *s = NULL;
    struct {unsigned num; char *name;} nn[] = {
      {0xADF5, "adfs"}, {0xADFF, "affs"}, {0x5346414F, "afs"}, {0x187, "autofs"},
+@@ -641,6 +658,8 @@
+ }
+ #endif
+
++
++#ifdef __linux__
+ static int check_copy_file_range(void)
+ {
+ #if defined(__ANDROID__)
+@@ -655,12 +674,16 @@
+ #endif
+ }
+
++#endif
++
+ // Return bytes copied from in to out. If bytes <0 copy all of in to out.
+ // If consumed isn't null, amount read saved there (return is written or error)
+ long long sendfile_len(int in, int out, long long bytes, long long *consumed)
+ {
+   long long total = 0, len, ww;
++#ifdef __linux__
+   int try_cfr = check_copy_file_range();
++#endif
+
+   if (consumed) *consumed = 0;
+   if (in>=0) while (bytes != total) {
+@@ -668,6 +691,7 @@
+     len = bytes-total;
+
+     errno = 0;
++#ifdef __linux__
+     if (try_cfr) {
+       if (bytes<0 || len>(1<<30)) len = (1<<30);
+       len = syscall(try_cfr, in, 0, out, 0, len, 0);
+@@ -676,7 +700,9 @@
+
+         continue;
+       }
+-    } else {
++    } else
++#endif
++    {
+       if (bytes<0 || len>sizeof(libbuf)) len = sizeof(libbuf);
+       ww = len = read(in, libbuf, len);
+     }
 --- a/toys.h
 +++ b/toys.h
 @@ -65,8 +65,10 @@
