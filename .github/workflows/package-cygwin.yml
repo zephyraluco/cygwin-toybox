@@ -6,10 +6,12 @@ on:
     branches: [main]
     paths:
       - scripts/**
+      - .gitattributes
       - .github/workflows/package-cygwin.yml
   pull_request:
     paths:
       - scripts/**
+      - .gitattributes
       - .github/workflows/package-cygwin.yml
 
 permissions:
@@ -24,6 +26,8 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
+      - name: Preserve upstream Unix line endings
+        run: git config --global core.autocrlf false
       - name: Check out pinned Toybox source
         uses: actions/checkout@v4
         with:
