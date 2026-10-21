@@ -9,6 +9,7 @@ export XAUTHORITY="$scratch/Xauthority"
 pid=
 cleanup() {
   if [[ -n "$pid" ]]; then kill -KILL "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+  rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
   cat "$log"
   rm -rf "$scratch"
 }

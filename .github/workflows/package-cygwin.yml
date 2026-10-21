@@ -68,11 +68,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Runtime cleanup failed' }
       - name: Archive installed environment
         run: |
-          # tar preserves Cygwin links and metadata better than a ZIP archive.
-          tar.exe -czf "$env:RUNNER_TEMP/cygwin-x86_64.tar.gz" -C C:\ cygwin
-          if ($LASTEXITCODE -ne 0) { throw 'Cygwin archive creation failed' }
-          tar.exe -tzf "$env:RUNNER_TEMP/cygwin-x86_64.tar.gz" > "$env:RUNNER_TEMP/cygwin-archive-files.txt"
-          if ($LASTEXITCODE -ne 0) { throw 'Cygwin archive validation failed' }
+          # Use a known tar implementation which understands Cygwin files.
+          # Invoke it directly so a login shell cannot recreate runneradmin's home.
+          $env:PATH = "C:\cygwin\bin;$env:PATH"
+          $archive = & C:\cygwin\bin\cygpath.exe -u "$env:RUNNER_TEMP/cygwin-x86_64.tar.gz"
+          & C:\cygwin\bin\tar.exe --version
+          & C:\cygwin\bin\tar.exe -czf $archive -C /cygdrive/c cygwin
+          if ($LASTEXITCODE -ne 0) { throw "Cygwin archive creation failed: $LASTEXITCODE" }
+          & C:\cygwin\bin\tar.exe -tzf $archive > "$env:RUNNER_TEMP/cygwin-archive-files.txt"
+          if ($LASTEXITCODE -ne 0) { throw "Cygwin archive validation failed: $LASTEXITCODE" }
       - name: Upload Cygwin archive
         uses: actions/upload-artifact@v4
         with:
