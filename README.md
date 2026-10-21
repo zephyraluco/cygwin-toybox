@@ -19,6 +19,7 @@ Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严�
 下载产物内包含 `cygwin-x86_64.tar.gz`，其顶层目录为 `cygwin/`。
 打包前直接删除 `/usr/share/doc` 和 `/usr/share/info`，不另行备份或复制其中的文件。
 `/usr/share/locale` 仅保留 `locale.alias`，删除翻译文件；`/usr/share/X11/locale` 保留。
+打包前删除 CI 遗留的 `/home/runneradmin` 用户目录。
 
 推送 `v*` tag 会在构建和测试成功后自动发布 GitHub Release。
 在 Release 的 Assets 中直接下载 `cygwin-x86_64.tar.gz` 及其 `.sha256` 校验文件，

@@ -13,3 +13,7 @@ find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name locale.alias \
 test -f /usr/share/locale/locale.alias
 test -z "$(find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name locale.alias -print -quit)"
 echo 'Removed translations from /usr/share/locale; retained locale.alias'
+
+rm -rf -- /home/runneradmin
+test ! -e /home/runneradmin
+echo 'Removed CI runner home directory /home/runneradmin'
