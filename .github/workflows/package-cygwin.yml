@@ -21,7 +21,7 @@ permissions:
 jobs:
   package:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         shell: pwsh
@@ -36,7 +36,12 @@ jobs:
           ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
           path: upstream/toybox
       - name: Install isolated Cygwin compiler
-        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers'
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,gcc-g++,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers,cygport,meson,ninja,python3,python3-mako,python3-ply,bison,flex,pkg-config,libexpat-devel,zlib-devel,libXext-devel,libXfixes-devel,libXdamage-devel,libXxf86vm-devel,libxcb-devel,xorgproto,windowsdriproto,curl'
+      - name: Build Cygwin Mesa without LLVM
+        run: |
+          $script = & C:\cygwin-build\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/build-mesa-softpipe.sh"
+          & C:\cygwin-build\bin\bash.exe --login $script "$env:TEMP/cygwin-packages"
+          if ($LASTEXITCODE -ne 0) { throw 'Non-LLVM Mesa build failed' }
       - name: Install and validate Cygwin
         run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
       - name: Compile and integrate Toybox

@@ -27,7 +27,7 @@ touch "$XAUTHORITY"
 xauth add :99 MIT-MAGIC-COOKIE-1 "$(openssl rand -hex 16)"
 # Force Mesa software rendering on the server and forbid direct rendering on
 # the client so CI cannot pass using the host's native GPU instead of GLX.
-/usr/bin/XWin.exe :99 -multiwindow -clipboard +iglx -nowgl -fp built-ins -nolisten tcp -auth "$XAUTHORITY" -logfile "$log" &
+GALLIUM_DRIVER=softpipe /usr/bin/XWin.exe :99 -multiwindow -clipboard +iglx -nowgl -fp built-ins -nolisten tcp -auth "$XAUTHORITY" -logfile "$log" &
 pid=$!
 for attempt in {1..15}; do
   if DISPLAY=:99 timeout 2 "$client"; then

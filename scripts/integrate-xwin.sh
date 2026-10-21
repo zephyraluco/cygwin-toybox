@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
-export PATH=/usr/bin:/bin
+mesa_stage=$(cat /opt/mesa-softpipe-stage)
+test -d "$mesa_stage"
+export PATH="$mesa_stage/usr/bin:/usr/bin:/bin"
 export LC_ALL=C
 project=$(cd "$(dirname "$0")/.." && pwd)
 runtime=$(cygpath -u "$1")
@@ -44,16 +46,16 @@ done
 # Retain both XWin's native WGL bridge and Mesa's software GLX provider.
 # Unlike imported DLLs, these modules are invisible in XWin's import table.
 mapfile -t native_modules < <(find -L /usr/bin /usr/lib -type f -iname 'cygnativeGLthunk.dll')
-mapfile -t software_modules < <(find -L /usr/lib -type f -name swrast_dri.so)
+mapfile -t software_modules < <(find -L "$mesa_stage/usr/lib" -type f -name swrast_dri.so)
 if (( ${#native_modules[@]} == 0 || ${#software_modules[@]} == 0 )); then
   echo 'Missing XWin native GL bridge or Mesa software driver' >&2
   exit 1
 fi
-mapfile -t gl_libraries < <(find -L /usr/bin -maxdepth 1 -type f \
+mapfile -t gl_libraries < <(find -L "$mesa_stage/usr/bin" -maxdepth 1 -type f \
   \( -name 'cygGL*.dll' -o -name 'cygglapi*.dll' \))
-test -f /usr/bin/cygGL-1.dll
+test -f "$mesa_stage/usr/bin/cygGL-1.dll"
 for module in "${native_modules[@]}" "${software_modules[@]}" "${gl_libraries[@]}"; do
-  target=$module
+  target=${module#"$mesa_stage"}
   case "$target" in
     /usr/bin/*) target="/bin/${target#/usr/bin/}" ;;
     /usr/lib/*) target="/lib/${target#/usr/lib/}" ;;
@@ -67,11 +69,20 @@ for module in "${native_modules[@]}" "${software_modules[@]}" "${gl_libraries[@]
     [[ "$dll" == *.dll ]] || continue
     dll=$(cygpath -u "$dll")
     name=$(basename "$dll")
-    if [[ -f "/usr/bin/$name" && ! -f "$runtime/bin/$name" ]]; then
+    if [[ "$name" == *LLVM* || "$name" == *llvm* ]]; then
+      echo "Unexpected LLVM dependency: $name" >&2
+      exit 1
+    fi
+    if [[ -f "$mesa_stage/usr/bin/$name" ]]; then
+      copy_file "$mesa_stage/usr/bin/$name" "/bin/$name"
+    elif [[ -f "/usr/bin/$name" && ! -f "$runtime/bin/$name" ]]; then
       copy_file "/usr/bin/$name" "/bin/$name"
     fi
   done < "$dependencies"
 done
+mkdir -p "$runtime/opt/mesa/share"
+cp "$mesa_stage/opt/mesa/share/"* "$runtime/opt/mesa/share/"
+test -z "$(find "$runtime" -iname '*llvm*.dll' -print -quit)"
 
 # XKB compilation requires rules, keycodes, symbols, geometry and locale data.
 cp -aL /usr/share/X11/xkb "$runtime/usr/share/X11/"

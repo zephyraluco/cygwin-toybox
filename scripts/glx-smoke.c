@@ -2,6 +2,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <stdio.h>
+#include <string.h>
 
 int main(void)
 {
@@ -34,6 +35,9 @@ int main(void)
   if (!version || !renderer) { fputs("No OpenGL renderer\n", stderr); return 1; }
   printf("GLX %d.%d; indirect=yes; OpenGL=%s; renderer=%s\n",
       major, minor, version, renderer);
+  if (!strstr((const char *)renderer, "softpipe")) {
+    fputs("Expected non-LLVM softpipe renderer\n", stderr); return 1;
+  }
   glViewport(0, 0, 64, 64);
   glDrawBuffer(GL_FRONT);
   glReadBuffer(GL_FRONT);

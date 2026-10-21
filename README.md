@@ -75,13 +75,19 @@ $test = & C:\cygwin\bin\cygpath.exe -u "$PWD/scripts/test-toybox.sh"
 
 发布包从独立构建环境中提取 `XWin.exe`、`xkbcomp.exe` 及递归导入的
 Cygwin DLL，并保留 XKB 键盘和 X11 locale 数据。恢复 `cygnativeGLthunk.dll`、
-Mesa `swrast_dri.so`、GL 客户端库及其递归 DLL 依赖（包括软件光栅器所需的 LLVM）。
+Mesa `swrast_dri.so`、GL 客户端库及其递归 DLL 依赖。
+Mesa 使用 Cygwin 官方源包和补丁重新构建，显式设置 `llvm=disabled`，使用
+Gallium softpipe；发布包不包含 LLVM DLL。官方二进制 Mesa 仅用于构建环境的
+引导依赖，发布时复制自行构建的 `libGL1` 兼容库和软件驱动。
 只复制所需驱动，不包含其他 DRI 驱动或外部字体包。基础包、Zsh、OpenSSL 和 Toybox 保留。
 
-支持二维 X11 和间接 GLX 软件渲染。
+支持二维 X11 和不依赖 LLVM 的间接 GLX 软件渲染。
 `XWin.exe` 位于 `/usr/bin/`，直接启动与 SSH 转发步骤见下节。
 
-CI 验证认证后的 X11 窗口和绘图，并强制间接 GLX 创建上下文、绘制颜色及读回像素，然后回归 Toybox 功能并打包。
+CI 从官方安装器已验证签名的缓存索引读取 Mesa 源包地址和 SHA-512，校验源包后
+用 cygport 应用 Cygwin 补丁、Meson/Ninja 构建。构建参数记录在
+`/opt/mesa/share/`。CI 检查 LLVM 被禁用、发布目录无 LLVM DLL，并强制
+间接 GLX 使用 softpipe 创建上下文、绘制颜色及读回像素，然后回归 Toybox 功能并打包。
 X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版本记录位于
 `/opt/xwin/share/`；精简 XWin 为提取的运行文件，不声明为完整的
 `xorg-server` 包管理器安装。
@@ -119,7 +125,7 @@ ssh -Y -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
 ```
 
 在其他终端中连接时，也要设置相同的 `DISPLAY` 和 `XAUTHORITY`。
-XWin 使用内置字体、多窗口和剪贴板；`+iglx` 允许间接 GLX，`-nowgl` 使用 Mesa 软件渲染，TCP 监听仍关闭。
+XWin 使用内置字体、多窗口和剪贴板；`+iglx` 允许间接 GLX，`-nowgl` 使用 Mesa softpipe 软件渲染，TCP 监听仍关闭。
 不要使用 `-ac` 或 `xhost +` 关闭认证。
 
 在远程会话中：
@@ -149,6 +155,8 @@ export QT_XCB_GL_INTEGRATION=xcb_glx
 间接 GLX 的 OpenGL 版本和扩展受 XWin/Mesa 限制，不能保证所有现代核心配置
 OpenGL、EGL 或 Vulkan 应用可用。恢复 GLX 不意味着远端应用一定停止探测 EGL/DRI3，
 这还取决于其图形后端配置。
+
+softpipe 不使用 LLVM JIT，体积较小，但渲染性能通常低于 llvmpipe。
 
 CI 验证 SSH 的 X11 转发选项，以及使用认证 cookie 的本地 X11 连接、窗口、绘图和间接 GLX 像素读回。
 实际远程登录与转发还取决于目标主机的 SSH 配置、账号授权和应用；CI 不持有你的远端凭据。
