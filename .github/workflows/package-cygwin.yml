@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - scripts/**
       - .gitattributes
@@ -80,3 +81,36 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested archive
+        uses: actions/download-artifact@v4
+        with:
+          name: cygwin-x86_64
+          path: dist
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cd dist
+          sha256sum cygwin-x86_64.tar.gz > cygwin-x86_64.tar.gz.sha256
+          cat > release-notes.md <<'EOF'
+          Minimal Cygwin environment with Toybox 0.8.15, 2D XWin, OpenSSH and xauth.
+
+          Download cygwin-x86_64.tar.gz directly and extract on Windows. The SHA-256 checksum is provided alongside it.
+
+          Documentation and Info manuals are removed. /usr/share/locale contains only locale.alias; X11 locale and keyboard data are retained. GLX/OpenGL is disabled.
+          EOF
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" cygwin-x86_64.tar.gz cygwin-x86_64.tar.gz.sha256 --clobber
+          else
+            gh release create "$RELEASE_TAG" cygwin-x86_64.tar.gz cygwin-x86_64.tar.gz.sha256 --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md
+          fi
