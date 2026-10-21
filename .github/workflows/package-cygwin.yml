@@ -36,7 +36,7 @@ jobs:
           ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
           path: upstream/toybox
       - name: Install isolated Cygwin compiler
-        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,gcc-g++,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers,cygport,meson,ninja,python3,python3-mako,python3-ply,bison,flex,pkg-config,libexpat-devel,zlib-devel,libXext-devel,libXfixes-devel,libXdamage-devel,libXxf86vm-devel,libxcb-devel,libX11-xcb-devel,libxcb-dri2-devel,libxcb-dri3-devel,libxcb-glx-devel,libxcb-present-devel,libxcb-randr-devel,libxcb-shm-devel,libxcb-xfixes-devel,libzstd-devel,python3-pefile,xorgproto,windowsdriproto,curl'
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,gcc-g++,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers,cygport,meson,ninja,python3,python3-mako,python3-packaging,python3-ply,bison,flex,pkg-config,libexpat-devel,zlib-devel,libXext-devel,libXfixes-devel,libXdamage-devel,libXxf86vm-devel,libxcb-devel,libX11-xcb-devel,libxcb-dri2-devel,libxcb-dri3-devel,libxcb-glx-devel,libxcb-present-devel,libxcb-randr-devel,libxcb-shm-devel,libxcb-xfixes-devel,libzstd-devel,python3-pefile,xorgproto,windowsdriproto,curl'
       - name: Build Cygwin Mesa without LLVM
         run: |
           $script = & C:\cygwin-build\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/build-mesa-softpipe.sh"
