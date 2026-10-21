@@ -38,11 +38,7 @@ jobs:
       - name: Install isolated Cygwin compiler
         run: |
           ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,gcc-g++,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers,cygport,meson,ninja,python3,bison,flex,pkg-config,libexpat-devel,zlib-devel,libXext-devel,libXfixes-devel,libXdamage-devel,libXxf86vm-devel,libxcb-devel,libX11-xcb-devel,libxcb-dri2-devel,libxcb-dri3-devel,libxcb-glx-devel,libxcb-present-devel,libxcb-randr-devel,libxcb-shm-devel,libxcb-xfixes-devel,libzstd-devel,xorgproto,windowsdriproto,curl'
-          $pythonTag = & C:\cygwin-build\bin\bash.exe --login -c 'python3 -c "import sys; print(str(sys.version_info.major) + str(sys.version_info.minor))"'
-          if ($LASTEXITCODE -ne 0 -or $pythonTag -notmatch '^3[0-9]+$') { throw 'Cannot determine Cygwin Python version' }
-          ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages "python${pythonTag}-mako,python${pythonTag}-packaging,python${pythonTag}-ply,python${pythonTag}-pefile"
-          & C:\cygwin-build\bin\bash.exe --login -c 'python3 -c "import sys, mako, packaging, ply, pefile; print(sys.version)"'
-          if ($LASTEXITCODE -ne 0) { throw 'Missing Mesa Python dependencies' }
+          ./scripts/install-mesa-python.ps1
       - name: Build Cygwin Mesa without LLVM
         run: |
           $script = & C:\cygwin-build\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/build-mesa-softpipe.sh"

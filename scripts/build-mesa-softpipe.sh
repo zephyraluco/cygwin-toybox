@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 trap 'echo "Mesa build failed at line $LINENO: $BASH_COMMAND" >&2' ERR
-export PATH=/usr/bin:/bin
+export PATH=/opt/mesa-python/bin:/usr/bin:/bin
 export LC_ALL=C
 cache=$(cygpath -u "$1")
 mirror=https://mirrors.kernel.org/sourceware/cygwin/
