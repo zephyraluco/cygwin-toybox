@@ -44,7 +44,7 @@ cd "$(dirname "$recipe")"
 echo 'Official Cygwin Mesa build configuration:'
 cat "$recipe"
 cygport "$recipe" prep
-cygport "$recipe" vars CYGMESON_ARGS > "$work/meson-args.sh"
+cygport "$recipe" vars CYGMESON_ARGS S > "$work/meson-args.sh"
 source "$work/meson-args.sh"
 mapfile -d '' -t recipe_args < <(python3 - "$CYGMESON_ARGS" <<'PY'
 import shlex, sys
@@ -52,21 +52,14 @@ for arg in shlex.split(sys.argv[1]):
     sys.stdout.buffer.write(arg.encode() + b'\0')
 PY
 )
-source_dir=
-while IFS= read -r candidate; do
-  candidate=$(dirname "$candidate")
-  if [[ -f "$candidate/VERSION" && -f "$candidate/meson.build" ]]; then
-    [[ -z "$source_dir" ]]
-    source_dir=$candidate
-  fi
-done < <(find "$work" -type f -name meson_options.txt)
-test -n "$source_dir"
+source_dir=$S
+test -f "$source_dir/meson.build"
 build="$work/build-softpipe"
 stage="$work/stage"
 meson setup "$build" "$source_dir" --prefix=/usr --libdir=lib \
   --buildtype=release --wrap-mode=nofallback "${recipe_args[@]}" \
   -Dllvm=disabled -Dgallium-drivers=swrast -Dvulkan-drivers= \
-  -Dgallium-opencl=disabled -Dgallium-rusticl=false
+  -Dgallium-opencl=disabled -Dgallium-rusticl=false -Dbuild-tests=false
 meson introspect --buildoptions "$build" > "$work/build-options.json"
 python3 - "$work/build-options.json" <<'PY'
 import json, sys
