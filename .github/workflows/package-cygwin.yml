@@ -60,11 +60,11 @@ jobs:
           $testScript = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-toybox.sh"
           & C:\cygwin\bin\bash.exe --login $testScript
           if ($LASTEXITCODE -ne 0) { throw 'Toybox runtime tests failed' }
-      - name: Remove documentation from published runtime
+      - name: Remove documentation and translations from published runtime
         run: |
           $script = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/prune-docs.sh"
           & C:\cygwin\bin\bash.exe --login $script
-          if ($LASTEXITCODE -ne 0) { throw 'Documentation cleanup failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime cleanup failed' }
       - name: Archive installed environment
         run: |
           # tar preserves Cygwin links and metadata better than a ZIP archive.
