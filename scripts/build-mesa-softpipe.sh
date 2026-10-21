@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo "Mesa build failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 export PATH=/usr/bin:/bin
 export LC_ALL=C
 cache=$(cygpath -u "$1")
@@ -15,11 +16,20 @@ if (( ${#indexes[@]} != 1 )); then
   find "$cache" -maxdepth 4 -name 'setup*' -print
   exit 1
 fi
-read -r source_path source_size source_hash < <(awk '
-  /^@ mesa$/ { package=1; next }
-  package && (/^@ / || /^\[/) { exit }
-  package && /^source: / { print $2, $3, $4; exit }
+version=$(cygcheck -c libGL1 | awk '$1 == "libGL1" {print $2}')
+test -n "$version"
+source_entry=$(awk -v name="mesa-$version-src.tar." '
+  $1 == "source:" && index($2, "/release/mesa/") && index($2, name) {
+    print $2, $3, $4; exit
+  }
 ' "${indexes[0]}")
+if [[ -z "$source_entry" ]]; then
+  echo "No source record matching installed libGL1 $version" >&2
+  grep -E '^(@ mesa|source: .*release/mesa/)' "${indexes[0]}" | head -40 || true
+  exit 1
+fi
+read -r source_path source_size source_hash <<< "$source_entry"
+printf 'Cygwin Mesa version=%s; source=%s\n' "$version" "$source_path"
 [[ "$source_path" == x86_64/release/mesa/*-src.tar.* ]]
 [[ "$source_hash" =~ ^[[:xdigit:]]{128}$ ]]
 archive=$(basename "$source_path")
