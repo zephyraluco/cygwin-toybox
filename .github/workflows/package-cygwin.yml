@@ -111,7 +111,7 @@ jobs:
 
           Download cygwin-x86_64.tar.gz directly and extract on Windows. The SHA-256 checksum is provided alongside it.
 
-          Documentation and Info manuals are removed. /usr/share/locale contains only locale.alias; X11 locale and keyboard data are retained. The CI runner's /home/runneradmin directory is removed. GLX/OpenGL is disabled.
+          Documentation, Info and man manuals are removed. /usr/share/locale contains only locale.alias; X11 locale and keyboard data are retained. The CI runner's /home/runneradmin directory is removed. GLX/OpenGL is disabled.
           EOF
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" cygwin-x86_64.tar.gz cygwin-x86_64.tar.gz.sha256 --clobber

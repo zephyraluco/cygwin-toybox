@@ -2,10 +2,11 @@
 set -euo pipefail
 export PATH=/usr/bin:/bin
 
-rm -rf -- /usr/share/doc /usr/share/info
+rm -rf -- /usr/share/doc /usr/share/info /usr/share/man
 test ! -e /usr/share/doc
 test ! -e /usr/share/info
-echo 'Removed /usr/share/doc and /usr/share/info'
+test ! -e /usr/share/man
+echo 'Removed /usr/share/doc, /usr/share/info and /usr/share/man'
 
 test -f /usr/share/locale/locale.alias
 find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name locale.alias \

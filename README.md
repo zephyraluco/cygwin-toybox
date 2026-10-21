@@ -17,7 +17,7 @@ Cygwin 安装器还会安装默认基础包和必要依赖，因此这不是严�
 或推送相关修改到 `main` 自动打包。运行成功后，在该次运行页面的
 **Artifacts → cygwin-x86_64** 下载压缩包，产物保留 **7 天**。
 下载产物内包含 `cygwin-x86_64.tar.gz`，其顶层目录为 `cygwin/`。
-打包前直接删除 `/usr/share/doc` 和 `/usr/share/info`，不另行备份或复制其中的文件。
+打包前直接删除 `/usr/share/doc`、`/usr/share/info` 和 `/usr/share/man`，不另行备份或复制其中的文件。
 `/usr/share/locale` 仅保留 `locale.alias`，删除翻译文件；`/usr/share/X11/locale` 保留。
 打包前删除 CI 遗留的 `/home/runneradmin` 用户目录。
 
