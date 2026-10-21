@@ -30,7 +30,7 @@ if [[ -z "$source_entry" ]]; then
 fi
 read -r source_path source_size source_hash <<< "$source_entry"
 printf 'Cygwin Mesa version=%s; source=%s\n' "$version" "$source_path"
-[[ "$source_path" == x86_64/release/mesa/*-src.tar.* ]]
+[[ "$source_path" == src/release/mesa/*-src.tar.* || "$source_path" == x86_64/release/mesa/*-src.tar.* ]]
 [[ "$source_hash" =~ ^[[:xdigit:]]{128}$ ]]
 archive=$(basename "$source_path")
 curl --fail --location --retry 3 --proto '=https' "$mirror$source_path" -o "$archive"
