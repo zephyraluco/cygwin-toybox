@@ -16,17 +16,14 @@ int main(void)
       GLX_BLUE_SIZE, 8, None};
   XVisualInfo *visual = glXChooseVisual(display, DefaultScreen(display), attributes);
   if (!visual) { fputs("No GLX RGBA visual\n", stderr); return 1; }
-  XSetWindowAttributes settings;
-  settings.colormap = XCreateColormap(display, RootWindow(display, visual->screen),
-      visual->visual, AllocNone);
-  Window window = XCreateWindow(display, RootWindow(display, visual->screen),
-      0, 0, 64, 64, 0, visual->depth, InputOutput, visual->visual,
-      CWColormap, &settings);
-  XMapWindow(display, window);
-  XSync(display, False);
+  /* Use a pixmap to avoid undefined reads from an unmapped/occluded window.
+     The separate X11 smoke test covers native window creation and mapping. */
+  Pixmap pixmap = XCreatePixmap(display, RootWindow(display, visual->screen),
+      64, 64, visual->depth);
+  GLXPixmap drawable = glXCreateGLXPixmap(display, visual, pixmap);
   /* False explicitly requests indirect GLX, as used across SSH forwarding. */
   GLXContext context = glXCreateContext(display, visual, NULL, False);
-  if (!context || !glXMakeCurrent(display, window, context)) {
+  if (!drawable || !context || !glXMakeCurrent(display, drawable, context)) {
     fputs("Cannot create or bind indirect GLX context\n", stderr); return 1;
   }
   if (glXIsDirect(display, context)) {
@@ -52,8 +49,8 @@ int main(void)
       pixel[0], pixel[1], pixel[2], pixel[3], (unsigned)status);
   glXMakeCurrent(display, None, NULL);
   glXDestroyContext(display, context);
-  XDestroyWindow(display, window);
-  XFreeColormap(display, settings.colormap);
+  glXDestroyGLXPixmap(display, drawable);
+  XFreePixmap(display, pixmap);
   XFree(visual);
   XCloseDisplay(display);
   if (!ok) return 1;
