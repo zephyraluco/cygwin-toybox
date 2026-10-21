@@ -36,7 +36,7 @@ jobs:
           ref: a57b091d05ec366dcd4dd737784c03761cb6a4b1
           path: upstream/toybox
       - name: Install isolated Cygwin compiler
-        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel'
+        run: ./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers'
       - name: Install and validate Cygwin
         run: ./scripts/install-cygwin.ps1 -Root C:\cygwin
       - name: Compile and integrate Toybox
@@ -50,7 +50,7 @@ jobs:
           $script = & C:\cygwin-build\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/integrate-xwin.sh"
           & C:\cygwin-build\bin\bash.exe --login $script C:\cygwin "$env:RUNNER_TEMP/xwin-smoke.exe"
           if ($LASTEXITCODE -ne 0) { throw 'XWin integration failed' }
-      - name: Validate XWin with an X11 client
+      - name: Validate XWin and indirect GLX rendering
         timeout-minutes: 3
         run: |
           $script = & C:\cygwin\bin\cygpath.exe -u "$env:GITHUB_WORKSPACE/scripts/test-xwin.sh"
@@ -107,15 +107,15 @@ jobs:
           cd dist
           sha256sum cygwin-x86_64.tar.gz > cygwin-x86_64.tar.gz.sha256
           cat > release-notes.md <<'EOF'
-          Minimal Cygwin environment with Toybox 0.8.15, 2D XWin, OpenSSH and xauth.
+          Cygwin environment with Toybox 0.8.15, XWin, Mesa software GLX, OpenSSH and xauth.
 
           Download cygwin-x86_64.tar.gz directly and extract on Windows. The SHA-256 checksum is provided alongside it.
 
-          Documentation, Info and man manuals are removed. /usr/share/locale contains only locale.alias; X11 locale and keyboard data are retained. The CI runner's /home/runneradmin directory is removed. GLX/OpenGL is disabled.
+          Documentation, Info and man manuals are removed. /usr/share/locale contains only locale.alias; X11 locale and keyboard data are retained. The CI runner's /home/runneradmin directory is removed. Start XWin with +iglx -nowgl to enable indirect software GLX.
           EOF
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" cygwin-x86_64.tar.gz cygwin-x86_64.tar.gz.sha256 --clobber
-            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md --draft=false
           else
             gh release create "$RELEASE_TAG" cygwin-x86_64.tar.gz cygwin-x86_64.tar.gz.sha256 --verify-tag --title "$RELEASE_TAG" --notes-file release-notes.md
           fi

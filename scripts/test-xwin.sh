@@ -2,6 +2,7 @@
 set -euo pipefail
 export PATH=/usr/bin:/bin
 client=$(cygpath -u "$1")
+glxclient="$(dirname "$client")/glx-smoke.exe"
 scratch=$(mktemp -d)
 log="$scratch/XWin.log"
 touch "$log"
@@ -24,12 +25,15 @@ grep -qx 'xauthlocation /usr/bin/xauth' "$scratch/ssh-config"
 umask 077
 touch "$XAUTHORITY"
 xauth add :99 MIT-MAGIC-COOKIE-1 "$(openssl rand -hex 16)"
-/usr/bin/XWin.exe :99 -multiwindow -clipboard -extension GLX -fp built-ins -nolisten tcp -auth "$XAUTHORITY" -logfile "$log" &
+# Force Mesa software rendering on the server and forbid direct rendering on
+# the client so CI cannot pass using the host's native GPU instead of GLX.
+/usr/bin/XWin.exe :99 -multiwindow -clipboard +iglx -nowgl -fp built-ins -nolisten tcp -auth "$XAUTHORITY" -logfile "$log" &
 pid=$!
 for attempt in {1..15}; do
   if DISPLAY=:99 timeout 2 "$client"; then
     test -n "$(xauth list :99)"
     echo 'Cookie-authenticated XWin connection, window creation and drawing passed'
+    DISPLAY=:99 LIBGL_ALWAYS_INDIRECT=1 LIBGL_ALWAYS_SOFTWARE=1 timeout 30 "$glxclient"
     exit 0
   fi
   kill -0 "$pid"

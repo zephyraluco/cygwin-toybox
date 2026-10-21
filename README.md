@@ -60,7 +60,7 @@ export PATH=/opt/toybox/bin:$PATH
 手动构建时，先检出上述 Toybox 提交，再运行：
 
 ```powershell
-./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel'
+./scripts/install-cygwin.ps1 -Root C:\cygwin-build -AdditionalPackages 'gcc-core,make,patch,xorg-server,libX11-devel,libGL-devel,dri-drivers'
 ./scripts/install-cygwin.ps1 -Root C:\cygwin
 # 从项目根目录执行；将 D:\src\toybox 替换为上游源码目录
 $build = & C:\cygwin-build\bin\cygpath.exe -u "$PWD/scripts/build-toybox.sh"
@@ -74,13 +74,14 @@ $test = & C:\cygwin\bin\cygpath.exe -u "$PWD/scripts/test-toybox.sh"
 ## Minimal Cygwin/X
 
 发布包从独立构建环境中提取 `XWin.exe`、`xkbcomp.exe` 及递归导入的
-Cygwin DLL，并保留 XKB 键盘和 X11 locale 数据。不复制完整图形依赖树、
-Mesa DRI 驱动、LLVM 或外部字体包。基础包、Zsh、OpenSSL 和 Toybox 保留。
+Cygwin DLL，并保留 XKB 键盘和 X11 locale 数据。恢复 `cygnativeGLthunk.dll`、
+Mesa `swrast_dri.so`、GL 客户端库及其递归 DLL 依赖（包括软件光栅器所需的 LLVM）。
+只复制所需驱动，不包含其他 DRI 驱动或外部字体包。基础包、Zsh、OpenSSL 和 Toybox 保留。
 
-只提供二维 X11 功能；需要 OpenGL/GLX 的程序不在这个精简配置的支持范围内。
+支持二维 X11 和间接 GLX 软件渲染。
 `XWin.exe` 位于 `/usr/bin/`，直接启动与 SSH 转发步骤见下节。
 
-CI 通过真实 X11 连接验证窗口创建与绘图，并回归 Toybox 功能后打包。
+CI 验证认证后的 X11 窗口和绘图，并强制间接 GLX 创建上下文、绘制颜色及读回像素，然后回归 Toybox 功能并打包。
 X 客户端（如 `xterm`）不包含在发布包内。部署清单和上游版本记录位于
 `/opt/xwin/share/`；精简 XWin 为提取的运行文件，不声明为完整的
 `xorg-server` 包管理器安装。
@@ -106,7 +107,7 @@ chmod 600 "$XAUTHORITY"
 if [ -z "$(xauth list "$DISPLAY")" ]; then
   xauth add "$DISPLAY" MIT-MAGIC-COOKIE-1 "$(openssl rand -hex 16)"
 fi
-XWin "$DISPLAY" -multiwindow -clipboard -extension GLX -fp built-ins \
+XWin "$DISPLAY" -multiwindow -clipboard +iglx -nowgl -fp built-ins \
   -nolisten tcp -auth "$XAUTHORITY" &
 ```
 
@@ -118,7 +119,7 @@ ssh -Y -o XAuthLocation=/usr/bin/xauth 用户名@远程主机
 ```
 
 在其他终端中连接时，也要设置相同的 `DISPLAY` 和 `XAUTHORITY`。
-XWin 使用内置字体、多窗口和剪贴板，关闭 GLX/3D 和 TCP 监听。
+XWin 使用内置字体、多窗口和剪贴板；`+iglx` 允许间接 GLX，`-nowgl` 使用 Mesa 软件渲染，TCP 监听仍关闭。
 不要使用 `-ac` 或 `xhost +` 关闭认证。
 
 在远程会话中：
@@ -134,7 +135,20 @@ xterm &          # 或运行远端已安装的其他二维 X11 应用
 手动设为 `:0`，也不需要开放本机的 6000 端口；X11 流量经 SSH 隧道传输。
 
 `-Y` 仅连接可信主机。需要限制远端权限时可以尝试 `ssh -X`，其兼容性受
-X11 SECURITY 扩展及远端应用影响。当前精简版不支持需要 GLX/OpenGL 的应用。
+X11 SECURITY 扩展及远端应用影响。
 
-CI 验证 SSH 的 X11 转发选项，以及使用认证 cookie 的本地 X11 连接、窗口和绘图。
+远端程序需要显式选择间接 GLX 时，可以在远端会话中设置：
+
+```bash
+export LIBGL_ALWAYS_INDIRECT=1
+# Qt/XCB 程序按需使用 GLX，避免其选择 EGL 后端
+export QT_XCB_GL_INTEGRATION=xcb_glx
+你的图形程序
+```
+
+间接 GLX 的 OpenGL 版本和扩展受 XWin/Mesa 限制，不能保证所有现代核心配置
+OpenGL、EGL 或 Vulkan 应用可用。恢复 GLX 不意味着远端应用一定停止探测 EGL/DRI3，
+这还取决于其图形后端配置。
+
+CI 验证 SSH 的 X11 转发选项，以及使用认证 cookie 的本地 X11 连接、窗口、绘图和间接 GLX 像素读回。
 实际远程登录与转发还取决于目标主机的 SSH 配置、账号授权和应用；CI 不持有你的远端凭据。
